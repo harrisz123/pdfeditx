@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Editor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.130/pdf.min.js"></script>
+    <script src="https://unpkg.com/pdf-lib@1.17.2/dist/pdf-lib.min.js"></script>
+    <style>
+        body {
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="container max-w-md w-full">
+        <div class="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200 transform transition-all hover:scale-[1.02] hover:shadow-3xl">
+            <div class="bg-gradient-to-r from-blue-100 to-blue-200 p-5 border-b border-blue-200">
+                <h1 class="text-2xl font-bold text-center text-blue-900 tracking-tight">PDF Editor</h1>
+            </div>
+            
+            <div class="p-6 space-y-6">
+                <div class="bg-blue-50 rounded-xl p-4 border border-blue-100 transition-all hover:bg-blue-100/50">
+                    <input 
+                        type="file" 
+                        id="pdfFile" 
+                        accept="application/pdf" 
+                        class="block w-full text-sm text-slate-500
+                        file:mr-4 file:py-2 file:px-4
+                        file:rounded-full file:border-0
+                        file:text-sm file:font-semibold
+                        file:bg-blue-50 file:text-blue-700
+                        hover:file:bg-blue-100
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                    >
+                </div>
+
+                <div 
+                    id="pdfViewer" 
+                    class="bg-gray-50 border-2 border-dashed border-blue-200 rounded-xl min-h-[300px] flex items-center justify-center transition-all hover:border-blue-300"
+                >
+                    <p class="text-gray-400 text-center">No PDF selected</p>
+                </div>
+
+                <div class="flex space-x-3">
+                    <input 
+                        type="text" 
+                        id="annotationText" 
+                        placeholder="Enter annotation text" 
+                        class="flex-grow px-4 py-2.5 border border-gray-300 rounded-lg 
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                        placeholder-gray-400 text-gray-900 text-sm"
+                    >
+                    <button 
+                        id="addAnnotation" 
+                        class="bg-blue-600 text-white px-5 py-2.5 rounded-lg 
+                        hover:bg-blue-700 active:bg-blue-800 
+                        transition-colors duration-200 
+                        focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                        flex items-center justify-center space-x-2"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Add</span>
+                    </button>
+                </div>
+
+                <button 
+                    id="downloadPDF" 
+                    class="w-full bg-green-600 text-white py-3.5 rounded-xl 
+                    hover:bg-green-700 active:bg-green-800 
+                    transition-colors duration-200
+                    flex items-center justify-center space-x-3
+                    focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2
+                    group"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 group-hover:animate-bounce" viewBox="0 0 20 20" fill="currentColor">
+                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-9.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
+                    <span>Download Edited PDF</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript remains the same as your original implementation
+        const pdfFileInput = document.getElementById('pdfFile');
+        const pdfViewer = document.getElementById('pdfViewer');
+        const annotationText = document.getElementById('annotationText');
+        const addAnnotation = document.getElementById('addAnnotation');
+        const downloadPDF = document.getElementById('downloadPDF');
+
+        const annotations = [];
+
+        function renderPDF(file) {
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                const pdfData = e.target.result;
+                pdfjsLib.getDocument({ data: pdfData }).promise.then(function (pdf) {
+                    pdfViewer.innerHTML = ''; // Clear previous content
+                    for (let i = 0; i < pdf.numPages; i++) {
+                        pdf.getPage(i + 1).then(function (page) {
+                            const canvas = document.createElement('canvas');
+                            const ctx = canvas.getContext('2d');
+                            const viewport = page.getViewport({ scale: 1.5 });
+                            canvas.height = viewport.height;
+                            canvas.width = viewport.width;
+                            page.render({ canvasContext: ctx, viewport: viewport });
+                            pdfViewer.appendChild(canvas);
+                        });
+                    }
+                });
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        pdfFileInput.addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                renderPDF(file);
+            }
+        });
+
+        addAnnotation.addEventListener('click', function (e) {
+            const text = annotationText.value;
+            if (text) {
+                const canvas = pdfViewer.getElementsByTagName('canvas')[0];
+                if (canvas) {
+                    canvas.addEventListener('click', function (e) {
+                        const rect = canvas.getBoundingClientRect();
+                        const x = e.clientX - rect.left;
+                        const y = e.clientY - rect.top;
+                        annotations.push({ x, y, text });
+                        drawAnnotations();
+                    });
+                }
+                annotationText.value = '';
+            }
+        });
+
+        function drawAnnotations() {
+            const canvas = pdfViewer.getElementsByTagName('canvas')[0];
+            if (canvas) {
+                const ctx = canvas.getContext('2d');
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = '14px Arial';
+                ctx.fillStyle = 'red';
+                annotations.forEach(annotation => {
+                    ctx.fillText(annotation.text, annotation.x, annotation.y);
+                });
+            }
+        }
+
+        downloadPDF.addEventListener('click', async function (e) {
+            if (!annotations.length) {
+                alert('No annotations to save.');
+                return;
+            }
+            const file = pdfFileInput.files[0];
+            if (file) {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await PDFLib.PDFDocument.load(arrayBuffer);
+                const page = pdf.getPage(0);
+                const { width, height } = page.getSize();
+
+                annotations.forEach(annotation => {
+                    const pdfY = height - annotation.y;
+                    page.drawText(annotation.text, {
+                        x: annotation.x,
+                        y: pdfY,
+                        size: 14,
+                        color: PDFLib.rgb(1, 0, 0),
+                    });
+                });
+
+                const pdfBytes = await pdf.save();
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'edited.pdf';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+        });
+    </script>
+</body>
+</html>
